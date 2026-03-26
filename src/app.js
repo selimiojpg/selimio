@@ -3,6 +3,7 @@ import { Client, Collection, GatewayIntentBits } from 'discord.js';
 import { REST } from '@discordjs/rest';
 import express from 'express';
 import cron from 'node-cron';
+import { joinVoiceChannel, entersState, VoiceConnectionStatus } from '@discordjs/voice';
 
 import { ReadableStream } from 'web-streams-polyfill';
 if (typeof global.ReadableStream === 'undefined') {
@@ -22,20 +23,15 @@ class TitanBot extends Client {
   constructor() {
     super({
       intents: [
+    GatewayIntentBits.Guilds,
+    GatewayIntentBits.GuildMembers,
+    GatewayIntentBits.GuildVoiceStates,
+    GatewayIntentBits.GuildMessages,
+    GatewayIntentBits.GuildMessageReactions,
+    GatewayIntentBits.MessageContent,
+    GatewayIntentBits.GuildBans,
+],
         
-        GatewayIntentBits.Guilds,                        
-        GatewayIntentBits.GuildMembers,                 
-        
-        
-        GatewayIntentBits.GuildMessages,                
-        GatewayIntentBits.GuildMessageReactions,        
-        GatewayIntentBits.MessageContent,               
-        
-        GatewayIntentBits.GuildVoiceStates,             
-        
-        
-        GatewayIntentBits.GuildBans,                    
-      ],
     });
 
     this.config = config;
@@ -48,7 +44,7 @@ class TitanBot extends Client {
     this.db = null;
     this.rest = new REST({ version: '10' }).setToken(config.bot.token);
   }
-
+    
   async start() {
     try {
       startupLog('Starting TitanBot...');
@@ -379,7 +375,7 @@ try {
   };
   
   setupShutdown();
-  bot.start();
+  bot.start().then(() => connectToVoice(bot));
 } catch (error) {
   logger.error('Fatal error during bot startup:', error);
   process.exit(1);
@@ -387,5 +383,29 @@ try {
 
 export default TitanBot;
 
+async function connectToVoice(client) {
+  try {
+    const channelId = process.env.VOICE_CHANNEL_ID;
 
+    const channel = await client.channels.fetch(channelId);
+
+    if (!channel || !channel.isVoiceBased()) {
+      console.log('Ses kanalı bulunamadı veya yanlış.');
+      return;
+    }
+
+    const connection = joinVoiceChannel({
+      channelId: channel.id,
+      guildId: channel.guild.id,
+      adapterCreator: channel.guild.voiceAdapterCreator,
+      selfDeaf: false,
+      selfMute: true,
+    });
+
+    await entersState(connection, VoiceConnectionStatus.Ready, 30_000);
+    console.log(`Ses kanalına bağlandı: ${channel.name}`);
+  } catch (err) {
+    console.error('Ses bağlantı hatası:', err);
+  }
+}
 
