@@ -50,9 +50,9 @@ export async function addXp(client, guild, member, xpToAdd) {
       }
       
       
-      if (config.announceLevelUp) {
-        await sendLevelUpAnnouncement(guild, member, levelData, config);
-      }
+    // if (config.announceLevelUp) {
+//     await sendLevelUpAnnouncement(guild, member, levelData, config);
+// }
 
       
       try {
